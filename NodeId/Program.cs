@@ -17,11 +17,15 @@ namespace Welch
                 var engParam3 = randomString();
 
                 var nodeId = new NodeId(engParam1, engParam2, engParam3);
-                Console.WriteLine(nodeId);
+                Console.WriteLine($"{{engParam1: `{nodeId.EngParam1}`, engParam2: `{nodeId.EngParam2}`, engParam3: \"{nodeId.EngParam3}\"}} --> {nodeId}");
 
                 var stringRepresentation = nodeId.ToString();
                 NodeId.TryParse(stringRepresentation, out NodeId nodeId2);
-                Console.WriteLine($"engParam1: {nodeId2.EngParam1}, engParam2: {nodeId2.EngParam2}, engParam3: {nodeId2.EngParam3}");
+                Console.WriteLine($"{nodeId2} --> {{engParam1: `{nodeId2.EngParam1}`, engParam2: `{nodeId2.EngParam2}`, engParam3: \"{nodeId2.EngParam3}\"}}");
+                Console.WriteLine();
+
+                System.Diagnostics.Debug.Assert(nodeId == nodeId2);
+
             }
 
 
@@ -61,14 +65,14 @@ namespace Welch
 
 
 
-    public struct NodeId
+    public struct NodeId : IEquatable<NodeId>
     {
         NumericParam engParam1;
         NumericParam engParam2;
         string engParam3;
 
 
-        private struct NumericParam
+        private struct NumericParam : IEquatable<NumericParam>
         {
             private static string MissingRepresentation = "N";
             public static NumericParam Missing = new NumericParam();
@@ -105,6 +109,31 @@ namespace Welch
                 param = new NumericParam();
                 return false;
 
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is NumericParam param && Equals(param);
+            }
+
+            public bool Equals(NumericParam other)
+            {
+                return value == other.value;
+            }
+
+            public override int GetHashCode()
+            {
+                return -1584136870 + value.GetHashCode();
+            }
+
+            public static bool operator ==(NumericParam left, NumericParam right)
+            {
+                return left.Equals(right);
+            }
+
+            public static bool operator !=(NumericParam left, NumericParam right)
+            {
+                return !(left == right);
             }
         }
 
@@ -183,6 +212,36 @@ namespace Welch
             return false;
         }
 
+        public override bool Equals(object obj)
+        {
+            return obj is NodeId id && Equals(id);
+        }
+
+        public bool Equals(NodeId other)
+        {
+            return engParam1.Equals(other.engParam1) &&
+                   engParam2.Equals(other.engParam2) &&
+                   engParam3 == other.engParam3;
+        }
+
+        public override int GetHashCode()
+        {
+            int hashCode = -1700740666;
+            hashCode = hashCode * -1521134295 + engParam1.GetHashCode();
+            hashCode = hashCode * -1521134295 + engParam2.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(engParam3);
+            return hashCode;
+        }
+
+        public static bool operator ==(NodeId left, NodeId right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(NodeId left, NodeId right)
+        {
+            return !(left == right);
+        }
     }
 
 
