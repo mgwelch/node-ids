@@ -34,12 +34,10 @@ namespace Welch
 
         static Random random = new Random();
 
-        public static int? randomNumber()
+        public static uint randomNumber()
         {
-            // 25% chance of null number.
-            if (random.Next(4) == 0) return null;
 
-            return random.Next(100);
+            return (uint) random.Next(100);
 
         }
 
@@ -67,97 +65,22 @@ namespace Welch
 
     public struct NodeId : IEquatable<NodeId>
     {
-        NumericParam engParam1;
-        NumericParam engParam2;
-        string engParam3;
 
+        public uint EngParam1 { get; }
+        public uint EngParam2 { get; }
+        public string EngParam3 { get; }
 
-        private struct NumericParam : IEquatable<NumericParam>
+        public NodeId(uint engParam1, uint engParam2, string engParam3)
         {
-            private static string MissingRepresentation = "N";
-            public static NumericParam Missing = new NumericParam();
-
-            int? value;
-
-            public int? Value => this.value;
-
-            public NumericParam(int? value)
-            {
-                this.value = value;
-            }
-
-            public override string ToString()
-            {
-                if (value.HasValue) return value.ToString();
-                return MissingRepresentation;
-            }
-
-            public static bool TryParse(string stringRepresentation, out NumericParam param)
-            {
-                if (int.TryParse(stringRepresentation, out int engParam))
-                {
-                    param = new NumericParam(engParam);
-                    return true;
-                }
-
-                if (stringRepresentation == "N")
-                {
-                    param = Missing;
-                    return true;
-                }
-
-                param = new NumericParam();
-                return false;
-
-            }
-
-            public override bool Equals(object obj)
-            {
-                return obj is NumericParam param && Equals(param);
-            }
-
-            public bool Equals(NumericParam other)
-            {
-                return value == other.value;
-            }
-
-            public override int GetHashCode()
-            {
-                return -1584136870 + value.GetHashCode();
-            }
-
-            public static bool operator ==(NumericParam left, NumericParam right)
-            {
-                return left.Equals(right);
-            }
-
-            public static bool operator !=(NumericParam left, NumericParam right)
-            {
-                return !(left == right);
-            }
+            this.EngParam1 = engParam1;
+            this.EngParam2 = engParam2;
+            this.EngParam3 = engParam3;
         }
 
-        public int? EngParam1 => engParam1.Value;
-        public int? EngParam2 => engParam2.Value;
-        public string EngParam3 => engParam3;
-
-        public NodeId(int? engParam1, int? engParam2, string engParam3)
-        {
-            this.engParam1 = new NumericParam(engParam1);
-            this.engParam2 = new NumericParam(engParam2);
-            this.engParam3 = engParam3;
-        }
-
-        private NodeId(NumericParam engParam1, NumericParam engParam2, string engParam3)
-        {
-            this.engParam1 = engParam1;
-            this.engParam2 = engParam2;
-            this.engParam3 = engParam3;
-        }
 
         public override string ToString()
         {
-            return $"{engParam1}-{engParam2}{EngParam3Suffix}";
+            return $"{EngParam1}-{EngParam2}{EngParam3Suffix}";
         }
 
         /// <summary>
@@ -170,64 +93,35 @@ namespace Welch
         {
             get
             {
-                return engParam3 == null ? null : $"-{engParam3}";
+                return EngParam3 == null ? null : $"-{EngParam3}";
             }
-        }
-
-        public static bool TryParseQuirky(string stringRepresentation, out NodeId id)
-        {
-            var reader = new System.IO.StringReader(stringRepresentation);
-
-            // Use a separate builder for each engineering parameter
-            var bldr1 = new System.Text.StringBuilder();
-            var bldr2 = new System.Text.StringBuilder();
-            var bldr3 = new System.Text.StringBuilder();
-            var stack = new Stack<System.Text.StringBuilder>(new System.Text.StringBuilder[] { bldr3, bldr2, bldr1 });
-
-            var bldr = stack.Pop();
-
-            int nextChar;
-            while ((nextChar = reader.Read()) != -1)
-            {
-                // We only pop the stack at most two times in this loop. Every `-` after the second
-                // gets appended to bldr3
-                if (nextChar == '-' && !(stack.Count == 0))
-                {
-                    bldr = stack.Pop();
-                }
-                else
-                {
-                    bldr.Append(Convert.ToChar(nextChar));
-                }
-            }
-
-            if (NumericParam.TryParse(bldr1.ToString(), out NumericParam engParam1)
-                && NumericParam.TryParse(bldr2.ToString(), out NumericParam engParam2))
-            {
-                id = new NodeId(engParam1, engParam2, bldr3.ToString());
-                return true;
-            }
-
-            id = new NodeId();
-            return false;
         }
 
         public static bool TryParse(string stringRepresentation, out NodeId id)
         {
+            var engParam3 = string.Empty; // default value for engParam3
             id = new NodeId(); // default return value if something goes wrong
             var firstHyphenIndex = stringRepresentation.IndexOf('-');
 
             if (firstHyphenIndex == -1) return false;
 
             var secondHyphenIndex = stringRepresentation.IndexOf('-', firstHyphenIndex + 1);
-            if (secondHyphenIndex == -1) secondHyphenIndex = stringRepresentation.Length;
+
+            if (secondHyphenIndex == -1)
+            {
+                secondHyphenIndex = stringRepresentation.Length;
+            }
+            else
+            {
+                engParam3 = stringRepresentation.Substring(secondHyphenIndex + 1, stringRepresentation.Length - secondHyphenIndex - 1);
+            }
+                
 
 
-            if (!NumericParam.TryParse(stringRepresentation.Substring(0, firstHyphenIndex), out NumericParam engParam1)) return false;
+            if (!uint.TryParse(stringRepresentation.Substring(0, firstHyphenIndex), out uint engParam1)) return false;
 
-            if (!NumericParam.TryParse(stringRepresentation.Substring(firstHyphenIndex + 1, secondHyphenIndex - firstHyphenIndex - 1), out NumericParam engParam2)) return false;
+            if (!uint.TryParse(stringRepresentation.Substring(firstHyphenIndex + 1, secondHyphenIndex - firstHyphenIndex - 1), out uint engParam2)) return false;
 
-            var engParam3 = (secondHyphenIndex == stringRepresentation.Length) ? string.Empty : stringRepresentation.Substring(secondHyphenIndex + 1, stringRepresentation.Length - secondHyphenIndex - 1);
             id = new NodeId(engParam1, engParam2, engParam3);
             return true;
 
@@ -240,17 +134,17 @@ namespace Welch
 
         public bool Equals(NodeId other)
         {
-            return engParam1.Equals(other.engParam1) &&
-                   engParam2.Equals(other.engParam2) &&
-                   engParam3 == other.engParam3;
+            return EngParam1.Equals(other.EngParam1) &&
+                   EngParam2.Equals(other.EngParam2) &&
+                   EngParam3 == other.EngParam3;
         }
 
         public override int GetHashCode()
         {
             int hashCode = -1700740666;
-            hashCode = hashCode * -1521134295 + engParam1.GetHashCode();
-            hashCode = hashCode * -1521134295 + engParam2.GetHashCode();
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(engParam3);
+            hashCode = hashCode * -1521134295 + EngParam1.GetHashCode();
+            hashCode = hashCode * -1521134295 + EngParam2.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(EngParam3);
             return hashCode;
         }
 
