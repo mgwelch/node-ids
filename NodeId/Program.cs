@@ -174,7 +174,7 @@ namespace Welch
             }
         }
 
-        public static bool TryParse(string stringRepresentation, out NodeId id)
+        public static bool TryParseQuirky(string stringRepresentation, out NodeId id)
         {
             var reader = new System.IO.StringReader(stringRepresentation);
 
@@ -210,6 +210,27 @@ namespace Welch
 
             id = new NodeId();
             return false;
+        }
+
+        public static bool TryParse(string stringRepresentation, out NodeId id)
+        {
+            id = new NodeId(); // default return value if something goes wrong
+            var firstHyphenIndex = stringRepresentation.IndexOf('-');
+
+            if (firstHyphenIndex == -1) return false;
+
+            var secondHyphenIndex = stringRepresentation.IndexOf('-', firstHyphenIndex + 1);
+            if (secondHyphenIndex == -1) secondHyphenIndex = stringRepresentation.Length;
+
+
+            if (!NumericParam.TryParse(stringRepresentation.Substring(0, firstHyphenIndex), out NumericParam engParam1)) return false;
+
+            if (!NumericParam.TryParse(stringRepresentation.Substring(firstHyphenIndex + 1, secondHyphenIndex - firstHyphenIndex - 1), out NumericParam engParam2)) return false;
+
+            var engParam3 = (secondHyphenIndex == stringRepresentation.Length) ? string.Empty : stringRepresentation.Substring(secondHyphenIndex + 1, stringRepresentation.Length - secondHyphenIndex - 1);
+            id = new NodeId(engParam1, engParam2, engParam3);
+            return true;
+
         }
 
         public override bool Equals(object obj)
