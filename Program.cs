@@ -9,7 +9,8 @@ namespace Welch
         public static void Main(string[] args)
         {
 
-
+            Console.WriteLine("| engParam1 | engParam2 | engParam3 | encodedParam3 | id |");
+            Console.WriteLine("| --------- | --------- | --------- | ------------- | -- |");
             while (true)
             {
                 var engParam1 = randomNumber();
@@ -17,14 +18,16 @@ namespace Welch
                 var engParam3 = randomString();
 
                 var nodeId = new NodeId(engParam1, engParam2, engParam3);
-                Console.WriteLine($"{{engParam1: `{nodeId.EngParam1}`, engParam2: `{nodeId.EngParam2}`, engParam3: \"{nodeId.EngParam3}\"}} --> {nodeId}");
+                Console.WriteLine($"| {engParam1} | {engParam2} | {engParam3} | {nodeId.EngParam3} | {nodeId} |");
 
                 var stringRepresentation = nodeId.ToString();
                 NodeId.TryParse(stringRepresentation, out NodeId nodeId2);
-                Console.WriteLine($"{nodeId2} --> {{engParam1: `{nodeId2.EngParam1}`, engParam2: `{nodeId2.EngParam2}`, engParam3: \"{nodeId2.EngParam3}\"}}");
-                Console.WriteLine();
+                //Console.WriteLine($"{nodeId2} --> {{engParam1: `{nodeId2.EngParam1}`, engParam2: `{nodeId2.EngParam2}`, engParam3: \"{nodeId2.EngParam3}\"}}");
+                //Console.WriteLine();
 
                 System.Diagnostics.Debug.Assert(nodeId == nodeId2);
+
+                
 
             }
 
@@ -52,14 +55,26 @@ namespace Welch
 
         public static char randomChar()
         {
-            // 25% of the time a `-` char is returned
-            if (random.Next(4) == 0) return '-';
+            // 25% of the time a special char is returned
+            if (random.Next(4) == 0)
+            {
+                return " ><%/\\+?&".RandomElement();
+            }
 
             var nextChar = random.Next(26) + 65;
             return Convert.ToChar(nextChar);
         }
     }
 
+    public static class StringExtension
+    {
+        static Random random = new Random();
+        public static char RandomElement(this String input)
+        {
+
+            return input[random.Next(input.Length)];
+        }
+    }
 
 
 
@@ -68,13 +83,20 @@ namespace Welch
 
         public uint EngParam1 { get; }
         public uint EngParam2 { get; }
-        public string EngParam3 { get; }
+        public string EncodedEngParam3 { get; }
+        public string EngParam3
+        {
+            get
+            {
+                return EncodedEngParam3 == null ? null : Encoding.UTF8.GetString(Convert.FromBase64String(EncodedEngParam3));
+            }
+        }
 
         public NodeId(uint engParam1, uint engParam2, string engParam3)
         {
             this.EngParam1 = engParam1;
             this.EngParam2 = engParam2;
-            this.EngParam3 = string.IsNullOrWhiteSpace(engParam3) ? null : engParam3;
+            this.EncodedEngParam3 = string.IsNullOrWhiteSpace(engParam3) ? null : Convert.ToBase64String(Encoding.UTF8.GetBytes(engParam3), Base64FormattingOptions.None);
         }
 
 
@@ -93,13 +115,13 @@ namespace Welch
         {
             get
             {
-                return EngParam3 == null ? null : $"-{EngParam3}";
+                return EngParam3 == null ? null : $"-{EncodedEngParam3}";
             }
         }
 
         public static bool TryParse(string stringRepresentation, out NodeId id)
         {
-            var engParam3 = string.Empty; // default value for engParam3
+            var encodedEngParam3 = string.Empty; // default value for engParam3
             id = new NodeId(); // default return value if something goes wrong
             var firstHyphenIndex = stringRepresentation.IndexOf('-');
 
@@ -113,7 +135,7 @@ namespace Welch
             }
             else
             {
-                engParam3 = stringRepresentation.Substring(secondHyphenIndex + 1, stringRepresentation.Length - secondHyphenIndex - 1);
+                encodedEngParam3 = stringRepresentation.Substring(secondHyphenIndex + 1, stringRepresentation.Length - secondHyphenIndex - 1);
             }
 
 
@@ -122,6 +144,7 @@ namespace Welch
 
             if (!uint.TryParse(stringRepresentation.Substring(firstHyphenIndex + 1, secondHyphenIndex - firstHyphenIndex - 1), out uint engParam2)) return false;
 
+            var engParam3 = encodedEngParam3 == null ? null : Encoding.UTF8.GetString(Convert.FromBase64String(encodedEngParam3));
             id = new NodeId(engParam1, engParam2, engParam3);
             return true;
 
